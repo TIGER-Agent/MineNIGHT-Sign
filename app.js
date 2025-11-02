@@ -2,7 +2,7 @@
 import { Mesh, toHex } from "https://cdn.jsdelivr.net/npm/@meshsdk/core@1.5.5/dist/mesh.min.js";
 
 // --- CONFIGURATION ---
-const BACKEND_API_URL = "http://YOUR_BACKEND_IP:8000/api/v1/authorize-test"; // Placeholder: Sẽ được Systeme thay thế
+const BACKEND_API_URL = "http://62.169.22.209:8001/api/v1/authorize-test"; // Placeholder: Sẽ được Systeme thay thế
 const T_AND_C_URL = "https://scavenger.prod.gd.midnighttge.io/TandC";
 
 // --- DOM ELEMENTS ---
