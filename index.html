@@ -3,148 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIGER Agent - Authorize Test Session</title>
+    <title>TIGER Agent - Authorize (MeshJS)</title>
+    <!-- 1. Import React và MeshJS -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@meshsdk/react@1.1.12/dist/mesh-react.js"></script>
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: #2a2a2a;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            width: 90%;
-            max-width: 500px;
-        }
-        h1 {
-            color: #ffa500;
-            margin-bottom: 30px;
-        }
-        button {
-            background-color: #ffa500;
-            color: #1a1a1a;
-            border: none;
-            padding: 15px 30px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            margin-top: 20px;
-        }
-        button:hover:not(:disabled) {
-            background-color: #ffc107;
-            transform: translateY(-2px);
-        }
-        button:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-        }
-        .info {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #333;
-            border-radius: 8px;
-            word-wrap: break-word;
-        }
+        /* CSS giữ nguyên như cũ */
+        body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background-color: #2a2a2a; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); text-align: center; width: 90%; max-width: 500px; }
+        h1 { color: #ffa500; margin-bottom: 30px; }
+        button { background-color: #ffa500; color: #1a1a1a; border: none; padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background-color 0.3s, transform 0.2s; margin-top: 20px; }
+        button:hover:not(:disabled) { background-color: #ffc107; transform: translateY(-2px); }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        .info { margin-top: 30px; padding: 15px; background-color: #333; border-radius: 8px; word-wrap: break-word; }
         .info p { margin: 5px 0; }
-        .status {
-            margin-top: 20px;
-            font-weight: bold;
-            height: 24px;
-        }
+        .status { margin-top: 20px; font-weight: bold; height: 24px; }
         .success { color: #4caf50; }
         .error { color: #f44336; }
     </style>
 </head>
 <body>
+    <!-- 2. Thêm một div làm root cho ứng dụng React -->
+    <div id="root"></div>
 
-    <div class="container">
-        <h1>Authorize Test Session</h1>
-        <p>Connect your wallet to generate a temporary credential set for an automated E2E test.</p>
-        
-        <button id="connectBtn">1. Connect Wallet</button>
-        <button id="authBtn" disabled>2. Authorize Test Session</button>
+    <script type="text/javascript">
+        // --- Bắt đầu Script MeshJS ---
 
-        <div class="info" id="infoBox" style="display: none;">
-            <p><strong>Session ID:</strong> <span id="sessionIdInfo"></span></p>
-            <p><strong>Wallet Address:</strong> <span id="walletInfo"></span></p>
-        </div>
+        // Lấy các thành phần từ thư viện MeshJS
+        const { MeshProvider, CardanoWallet } = MeshReact;
+        const { useWallet } = MeshReact.hooks;
 
-        <div class="status" id="statusMessage"></div>
-    </div>
+        // --- Component chính của ứng dụng ---
+        function App() {
+            const { wallet, connected, name, connecting, connect, disconnect } = useWallet();
+            const [sessionId, setSessionId] = React.useState(null);
+            const [walletAddress, setWalletAddress] = React.useState('');
 
-    <script src="https://cdn.jsdelivr.net/npm/@cardano-foundation/cardano-dapp-connector@latest/dist/cardano-dapp-connector.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- UI Elements ---
-            const connectBtn = document.getElementById('connectBtn');
-            const authBtn = document.getElementById('authBtn');
-            const infoBox = document.getElementById('infoBox');
-            const sessionIdInfo = document.getElementById('sessionIdInfo');
-            const walletInfo = document.getElementById('walletInfo');
-            const statusMessage = document.getElementById('statusMessage');
+            // Chạy một lần khi component được tải
+            React.useEffect(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const id = urlParams.get('session_id');
+                setSessionId(id);
+            }, []);
 
-            // --- State Variables ---
-            let sessionId = null;
-            let walletApi = null;
+            // Chạy mỗi khi trạng thái 'connected' thay đổi
+            React.useEffect(() => {
+                async function getAddress() {
+                    if (connected && wallet) {
+                        const addresses = await wallet.getUsedAddresses();
+                        setWalletAddress(addresses[0] || '');
+                    } else {
+                        setWalletAddress('');
+                    }
+                }
+                getAddress();
+            }, [connected, wallet]);
 
-            // --- Logic ---
-            
-            // 1. Get Session ID from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            sessionId = urlParams.get('session_id');
-
-            if (sessionId) {
-                sessionIdInfo.textContent = sessionId;
-            } else {
-                statusMessage.textContent = 'ERROR: session_id not found in URL.';
-                statusMessage.className = 'status error';
+            // Hàm xử lý khi nhấn nút Authorize (cho bước sau)
+            function handleAuthorize() {
+                alert('Authorization logic will be implemented next!');
             }
 
-            // 2. Connect Wallet Logic
-            connectBtn.addEventListener('click', async () => {
-                if (!sessionId) return;
+            return React.createElement('div', { className: 'container' },
+                React.createElement('h1', null, 'Authorize Test Session'),
+                React.createElement('p', null, 'Connect your wallet to generate a temporary credential set for an automated E2E test.'),
                 
-                statusMessage.textContent = 'Connecting to wallet...';
-                statusMessage.className = 'status';
+                // 3. Thêm component nút Connect Wallet của MeshJS
+                React.createElement('div', { style: { marginTop: '20px' } }, React.createElement(CardanoWallet)),
 
-                try {
-                    const dappConnector = cardanoDappConnector;
-                    walletApi = await dappConnector.connect();
-                    
-                    const address = await walletApi.getAddress();
-                    walletInfo.textContent = address;
+                // Chỉ hiển thị nút Authorize khi đã kết nối ví
+                connected && React.createElement('button', { id: 'authBtn', onClick: handleAuthorize }, '2. Authorize Test Session'),
 
-                    // Update UI
-                    infoBox.style.display = 'block';
-                    connectBtn.disabled = true;
-                    connectBtn.textContent = 'Wallet Connected';
-                    authBtn.disabled = false;
-                    statusMessage.textContent = 'Wallet connected successfully. Ready to authorize.';
-                    statusMessage.className = 'status success';
+                // Hiển thị thông tin
+                React.createElement('div', { className: 'info', style: { display: sessionId || connected ? 'block' : 'none' } },
+                    sessionId && React.createElement('p', null, 
+                        React.createElement('strong', null, 'Session ID: '),
+                        React.createElement('span', null, sessionId)
+                    ),
+                    walletAddress && React.createElement('p', null,
+                        React.createElement('strong', null, 'Wallet Address: '),
+                        React.createElement('span', null, walletAddress)
+                    )
+                ),
 
-                } catch (error) {
-                    console.error('Wallet connection failed:', error);
-                    statusMessage.textContent = 'Wallet connection failed. Please try again.';
-                    statusMessage.className = 'status error';
-                }
-            });
+                // Hiển thị trạng thái
+                React.createElement('div', { className: 'status' },
+                    !sessionId ? React.createElement('span', { className: 'error' }, 'ERROR: session_id not found in URL.') :
+                    connecting ? 'Connecting...' :
+                    connected ? React.createElement('span', { className: 'success' }, `Connected to ${name} wallet.`) : 'Please connect your wallet.'
+                )
+            );
+        }
 
-            // 3. Authorize Logic (Placeholder for TASK M6.1-T2)
-            authBtn.addEventListener('click', () => {
-                statusMessage.textContent = 'Authorization logic will be implemented in the next step...';
-                // Logic for signing and sending data will go here.
-            });
-        });
+        // --- Render ứng dụng React ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            // 4. Bọc ứng dụng trong MeshProvider
+            React.createElement(MeshProvider, null, React.createElement(App))
+        );
     </script>
 </body>
 </html>
