@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIGER Agent - Authorize (MeshJS v2)</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TIGER Agent - Authorize (Babel)</title>
+    <!-- 1. Tải các thư viện -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@meshsdk/react@1.1.12/dist/mesh-react.js"></script>
+    <!-- 2. Tải trình biên dịch Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .container { background-color: #2a2a2a; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); text-align: center; width: 90%; max-width: 500px; }
@@ -19,79 +25,91 @@
     </style>
 </head>
 <body>
-
     <div id="root"></div>
 
-    <!-- Tải các thư viện trước -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@meshsdk/react@1.1.12/dist/mesh-react.js"></script>
+    <!-- 3. Thẻ script bây giờ có type="text/babel" -->
+    <script type="text/babel">
+        const { MeshProvider, CardanoWallet } = MeshReact;
+        const { useWallet } = MeshReact.hooks;
 
-    <!-- Script tùy chỉnh của chúng ta sẽ chạy sau cùng -->
-    <script type="text/javascript">
-        // Bọc toàn bộ logic trong một hàm để đảm bảo phạm vi
-        function main() {
-            const { MeshProvider, CardanoWallet } = MeshReact;
-            const { useWallet } = MeshReact.hooks;
+        function App() {
+            const { wallet, connected, name, connecting } = useWallet();
+            const [sessionId, setSessionId] = React.useState(null);
+            const [walletAddress, setWalletAddress] = React.useState('');
 
-            function App() {
-                const { wallet, connected, name, connecting, connect, disconnect } = useWallet();
-                const [sessionId, setSessionId] = React.useState(null);
-                const [walletAddress, setWalletAddress] = React.useState('');
+            React.useEffect(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                setSessionId(urlParams.get('session_id'));
+            }, []);
 
-                React.useEffect(() => {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const id = urlParams.get('session_id');
-                    setSessionId(id);
-                }, []);
-
-                React.useEffect(() => {
-                    async function getAddress() {
-                        if (connected && wallet) {
-                            const addresses = await wallet.getUsedAddresses();
-                            setWalletAddress(addresses[0] || '');
-                        } else {
-                            setWalletAddress('');
-                        }
+            React.useEffect(() => {
+                const getAddress = async () => {
+                    if (connected && wallet) {
+                        const addresses = await wallet.getUsedAddresses();
+                        setWalletAddress(addresses[0] || '');
+                    } else {
+                        setWalletAddress('');
                     }
-                    getAddress();
-                }, [connected, wallet]);
+                };
+                getAddress();
+            }, [connected, wallet]);
 
-                function handleAuthorize() {
-                    alert('Authorization logic will be implemented next!');
-                }
+            const handleAuthorize = () => {
+                alert('Authorization logic will be implemented next!');
+            };
 
-                return React.createElement('div', { className: 'container' },
-                    React.createElement('h1', null, 'Authorize Test Session'),
-                    React.createElement('p', null, 'Connect your wallet to generate a temporary credential set for an automated E2E test.'),
-                    React.createElement('div', { style: { marginTop: '20px' } }, React.createElement(CardanoWallet)),
-                    connected && React.createElement('button', { id: 'authBtn', onClick: handleAuthorize }, '2. Authorize Test Session'),
-                    React.createElement('div', { className: 'info', style: { display: sessionId || connected ? 'block' : 'none' } },
-                        sessionId && React.createElement('p', null, 
-                            React.createElement('strong', null, 'Session ID: '),
-                            React.createElement('span', null, sessionId)
-                        ),
-                        walletAddress && React.createElement('p', null,
-                            React.createElement('strong', null, 'Wallet Address: '),
-                            React.createElement('span', { style: { fontSize: '12px' } }, walletAddress)
-                        )
-                    ),
-                    React.createElement('div', { className: 'status' },
-                        !sessionId ? React.createElement('span', { className: 'error' }, 'ERROR: session_id not found in URL.') :
-                        connecting ? 'Connecting...' :
-                        connected ? React.createElement('span', { className: 'success' }, `Connected to ${name} wallet.`) : 'Please connect your wallet.'
-                    )
-                );
-            }
+            const StatusDisplay = () => {
+                if (!sessionId) return <span className="error">ERROR: session_id not found in URL.</span>;
+                if (connecting) return 'Connecting...';
+                if (connected) return <span className="success">{`Connected to ${name} wallet.`}</span>;
+                return 'Please connect your wallet.';
+            };
 
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(
-                React.createElement(MeshProvider, null, React.createElement(App))
+            return (
+                <div className="container">
+                    <h1>Authorize Test Session</h1>
+                    <p>Connect your wallet to generate a temporary credential set for an automated E2E test.</p>
+                    
+                    <div style={{ marginTop: '20px' }}>
+                        <CardanoWallet />
+                    </div>
+
+                    {connected && (
+                        <button id="authBtn" onClick={handleAuthorize}>
+                            2. Authorize Test Session
+                        </button>
+                    )}
+
+                    {(sessionId || connected) && (
+                        <div className="info">
+                            {sessionId && (
+                                <p>
+                                    <strong>Session ID: </strong>
+                                    <span>{sessionId}</span>
+                                </p>
+                            )}
+                            {walletAddress && (
+                                <p>
+                                    <strong>Wallet Address: </strong>
+                                    <span style={{ fontSize: '12px' }}>{walletAddress}</span>
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="status">
+                        <StatusDisplay />
+                    </div>
+                </div>
             );
         }
 
-        // Đảm bảo hàm main() chỉ chạy sau khi toàn bộ trang đã được tải
-        window.onload = main;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <MeshProvider>
+                <App />
+            </MeshProvider>
+        );
     </script>
 </body>
 </html>
